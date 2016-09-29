@@ -4,18 +4,27 @@ namespace App\Http\Controllers;
 
 
 use App\Article;
+use App\Tag;
 use App\Http\Requests\ArticleRequest;
 use Illuminate\Http\Request;
 //use Request;
 use Carbon\Carbon;
+use Session;
 
 class ArticlesController extends Controller
 {
+
+	public function __construct()
+	{
+		//$this->middleware('auth', ['except'=>'create']);
+	}
+
     public function index()
     {
     	$articles = Article::latest('published_at')->published()->get();
+        $latest = Article::latest()->first();
 
-    	return view('articles.index')->with('articles', $articles);
+    	return view('articles.index')->with(['articles' => $articles, 'latest' => $latest]);
     }
 
     public function show($id)
@@ -27,14 +36,27 @@ class ArticlesController extends Controller
 
     public function create()
     {
-    	return view('articles.create');
+    	$tagsName = [];
+        $tags = Tag::all('name');
+        foreach ($tags as $tag) {
+            array_push($tagsName, $tag['name']);
+        }
+
+        return view('articles.create')->with('tags', $tagsName);
     }
 
     public function store(ArticleRequest $request)
     {
+    	//$this->validate($request, ['title'=> 'required']);
+        //dd($request->input('tags'));
+
+    	$article = Article::create($request->all());
+
+        $tagId = $request->input('tag_list');
+        $article->tags()->attach($tagId);
     	
-    	Article::create($request->all());
-    	
+        session()->flash('flash_message', 'Your article has been created');
+
     	return redirect('articles');
     }
 
@@ -42,14 +64,23 @@ class ArticlesController extends Controller
     {
     	$article = Article::findOrFail($id);
 
-    	return view('articles.edit')->with('article', $article);
+        $tagsName = [];
+        $tags = Tag::all('name');
+        foreach ($tags as $tag) {
+            array_push($tagsName, $tag['name']);
+        }
+
+    	return view('articles.edit')->with(['article' => $article, 'tags' => $tagsName]);
     }
 
     public function update($id, ArticleRequest $request)
     {
     	$article = Article::findOrFail($id);
 
-    	$article->update($request->all());
+        $tagId = $request->input('tag_list');
+        $article->tags()->sync($tagId);
+
+        $article->update($request->all());
 
     	return redirect('articles');
     }

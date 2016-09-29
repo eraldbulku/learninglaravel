@@ -37,4 +37,19 @@ class Article extends Model
     	return $this->belongsTo('App\User');
     }
 
+    public function tags()
+    {
+        return $this->belongsToMany('App\Tag')->withTimestamps();
+    }
+
+    public function getTagListAttribute()
+    {   
+        $tagsName = [];
+        $tags = $this->tags;
+        foreach ($tags as $tag) {
+            array_push($tagsName, $tag['id']);
+        }
+        return $tagsName;
+    }
+
 }
